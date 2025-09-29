@@ -233,9 +233,27 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
 
   const getYouTubeEmbedUrl = (url: string) => {
     try {
-      const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+      // More comprehensive YouTube URL parsing
+      let videoId = null;
+      
+      // Handle different YouTube URL formats
+      const patterns = [
+        /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
+        /(?:youtu\.be\/)([^&\n?#]+)/,
+        /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
+        /(?:youtube\.com\/v\/)([^&\n?#]+)/
+      ];
+      
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+          videoId = match[1];
+          break;
+        }
+      }
+      
       if (videoId && videoId[1]) {
-        return `https://www.youtube.com/embed/${videoId[1]}?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1`;
+        return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
       }
     } catch (error) {
       console.error('Error parsing YouTube URL:', error);
@@ -434,14 +452,15 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
               <div className={`aspect-video relative overflow-hidden transition-all duration-500 ${
                 criticalAlert ? 'bg-red-900' : 'bg-gray-900'
               }`}>
-                {youtubeUrl && getYouTubeEmbedUrl(youtubeUrl) ? (
+                {youtubeUrl.trim() && getYouTubeEmbedUrl(youtubeUrl.trim()) ? (
                   <div className="relative w-full h-full">
                     <iframe
-                      src={getYouTubeEmbedUrl(youtubeUrl) || ''}
+                      src={getYouTubeEmbedUrl(youtubeUrl.trim()) || ''}
                       className="w-full h-full"
                       frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
+                      title="AI Camera Analysis Video"
                     ></iframe>
                     
                     {/* Zone Overlays */}
