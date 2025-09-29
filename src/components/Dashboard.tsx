@@ -33,7 +33,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   const [assistantStatus, setAssistantStatus] = useState('working');
   const [densityData, setDensityData] = useState({ current: 23, max: 50, zones: ['Zone A: 8', 'Zone B: 12', 'Zone C: 3'] });
   const [criticalAlert, setCriticalAlert] = useState(false);
-  const [userScrolled, setUserScrolled] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -77,17 +77,26 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   }, []);
 
   useEffect(() => {
-    // Only auto-scroll if user hasn't manually scrolled
-    if (!userScrolled && logsEndRef.current) {
+    // Only auto-scroll if user is at bottom
+    if (isAtBottom && logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [logs]);
+  }, [logs, isAtBottom]);
 
-  // Handle manual scrolling detection
+  // Check if user is at bottom of logs
+  const checkIfAtBottom = () => {
+    const container = logsContainerRef.current;
+    if (!container) return true;
+    
+    const threshold = 10; // pixels from bottom
+    const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+    return atBottom;
+  };
+
+  // Handle scroll events
   const handleLogsScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
-    setUserScrolled(!isAtBottom);
+    const atBottom = checkIfAtBottom();
+    setIsAtBottom(atBottom);
   };
 
   // Critical alert effect
@@ -119,8 +128,13 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
       type: 'error' as const
     };
     setLogs(prev => [...prev, criticalMessage]);
-    // Force scroll to show critical alert
-    setUserScrolled(false);
+    // Force scroll to show critical alert by setting to bottom
+    setIsAtBottom(true);
+    setTimeout(() => {
+      if (logsEndRef.current) {
+        logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   const sendMessage = () => {
@@ -413,11 +427,13 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                 }`} />
                 Live Activity Logs
               </h3>
-              {userScrolled && (
+              {!isAtBottom && (
                 <button
                   onClick={() => {
-                    setUserScrolled(false);
-                    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    setIsAtBottom(true);
+                    setTimeout(() => {
+                      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }, 50);
                   }}
                   className={`mt-2 px-3 py-1 text-xs rounded-full transition-colors ${
                     criticalAlert 
@@ -425,7 +441,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                       : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                   }`}
                 >
-                  Scroll to latest
+                  ↓ New messages
                 </button>
               )}
             </div>
