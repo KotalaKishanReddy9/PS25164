@@ -45,8 +45,12 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   });
   const [criticalAlert, setCriticalAlert] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [videoSource, setVideoSource] = useState<'youtube' | 'file' | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -143,10 +147,10 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   };
 
   const startAnalysis = () => {
-    if (!youtubeUrl.trim()) {
+    if (!youtubeUrl.trim() && !uploadedVideo) {
       setLogs(prev => [...prev, {
         id: Date.now().toString(),
-        message: 'Error: Please enter a valid YouTube URL',
+        message: 'Error: Please enter a valid YouTube URL or upload a video file',
         timestamp: new Date(),
         type: 'error'
       }]);
@@ -155,9 +159,10 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
     
     setIsAnalyzing(true);
     setShowUrlInput(false);
+    setShowFileUpload(false);
     setLogs(prev => [...prev, {
       id: Date.now().toString(),
-      message: `AI: Starting analysis of video feed from YouTube`,
+      message: `AI: Starting analysis of video feed from ${videoSource === 'file' ? 'uploaded file' : 'YouTube'}`,
       timestamp: new Date(),
       type: 'info'
     }, {
@@ -176,6 +181,60 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
       timestamp: new Date(),
       type: 'info'
     }]);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check if it's a video file
+      if (!file.type.startsWith('video/')) {
+        setLogs(prev => [...prev, {
+          id: Date.now().toString(),
+          message: 'Error: Please select a valid video file',
+          timestamp: new Date(),
+          type: 'error'
+        }]);
+        return;
+      }
+
+      // Check file size (limit to 100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        setLogs(prev => [...prev, {
+          id: Date.now().toString(),
+          message: 'Error: File size too large. Please select a file smaller than 100MB',
+          timestamp: new Date(),
+          type: 'error'
+        }]);
+        return;
+      }
+
+      const url = URL.createObjectURL(file);
+      setUploadedVideo(url);
+      setUploadedFileName(file.name);
+      setVideoSource('file');
+      setYoutubeUrl(''); // Clear YouTube URL if file is uploaded
+      
+      setLogs(prev => [...prev, {
+        id: Date.now().toString(),
+        message: `System: Video file "${file.name}" uploaded successfully`,
+        timestamp: new Date(),
+        type: 'info'
+      }]);
+    }
+  };
+
+  const clearUploadedVideo = () => {
+    if (uploadedVideo) {
+      URL.revokeObjectURL(uploadedVideo);
+    }
+    setUploadedVideo(null);
+    setUploadedFileName('');
+    setVideoSource(null);
+  };
+
+  const clearYouTubeUrl = () => {
+    setYoutubeUrl('');
+    setVideoSource(null);
   };
 
   // Critical alert effect
@@ -395,13 +454,27 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                     AI-Powered Camera Feed
                   </h2>
                   <div className="flex items-center gap-4">
-                    {!showUrlInput && !isAnalyzing && (
-                      <button
-                        onClick={() => setShowUrlInput(true)}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                      >
-                        Add YouTube URL
-                      </button>
+                    {!showUrlInput && !showFileUpload && !isAnalyzing && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShowUrlInput(true);
+                            setShowFileUpload(false);
+                          }}
+                          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          Add YouTube URL
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowFileUpload(true);
+                            setShowUrlInput(false);
+                          }}
+                          className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        >
+                          Upload Video File
+                        </button>
+                      </div>
                     )}
                     {isAnalyzing && (
                       <button
@@ -428,7 +501,11 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                     <input
                       type="url"
                       value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      onChange={(e) => {
+                        setYoutubeUrl(e.target.value);
+                        setVideoSource('youtube');
+                        clearUploadedVideo();
+                      }}
                       placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
                       className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
@@ -440,11 +517,56 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                       Start Analysis
                     </button>
                     <button
-                      onClick={() => setShowUrlInput(false)}
+                      onClick={() => {
+                        setShowUrlInput(false);
+                        clearYouTubeUrl();
+                      }}
                       className="px-3 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                     >
                       Cancel
                     </button>
+                  </div>
+                )}
+                
+                {showFileUpload && (
+                  <div className="mt-4">
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleFileUpload}
+                        className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                      />
+                      <button
+                        onClick={() => {
+                          setShowFileUpload(false);
+                          clearUploadedVideo();
+                        }}
+                        className="px-3 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    
+                    {uploadedVideo && (
+                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-sm text-green-800">File ready: {uploadedFileName}</span>
+                        </div>
+                        <button
+                          onClick={startAnalysis}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm"
+                        >
+                          <Play className="w-4 h-4" />
+                          Start Analysis
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div className="mt-2 text-xs text-gray-500">
+                      Supported formats: MP4, WebM, AVI, MOV, etc. Maximum file size: 100MB
+                    </div>
                   </div>
                 )}
               </div>
@@ -508,6 +630,9 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                 {/* Overlay Info */}
                 <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
                   <div className="text-sm">AI Camera Analysis - 3 Zone Detection</div>
+                  <div className="text-xs text-gray-300">
+                    Source: {videoSource === 'file' ? `File: ${uploadedFileName}` : 'YouTube'}
+                  </div>
                   <div className="text-xs text-gray-300">{new Date().toLocaleTimeString()}</div>
                 </div>
                 
