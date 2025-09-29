@@ -232,8 +232,15 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   };
 
   const getYouTubeEmbedUrl = (url: string) => {
-    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
-    return videoId ? `https://www.youtube.com/embed/${videoId[1]}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId[1]}` : null;
+    try {
+      const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+      if (videoId && videoId[1]) {
+        return `https://www.youtube.com/embed/${videoId[1]}?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1`;
+      }
+    } catch (error) {
+      console.error('Error parsing YouTube URL:', error);
+    }
+    return null;
   };
 
   const getRoleIcon = (role: string) => {
