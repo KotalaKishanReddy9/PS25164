@@ -411,19 +411,19 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                       type="url"
                       value={youtubeUrl}
                       onChange={(e) => setYoutubeUrl(e.target.value)}
-                      placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=...)"
-                      className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
+                      className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                     <button
                       onClick={startAnalysis}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
+                      className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 whitespace-nowrap"
                     >
                       <Play className="w-4 h-4" />
-                      Start AI Analysis
+                      Start Analysis
                     </button>
                     <button
                       onClick={() => setShowUrlInput(false)}
-                      className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      className="px-3 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                     >
                       Cancel
                     </button>
