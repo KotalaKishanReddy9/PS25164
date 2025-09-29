@@ -12,7 +12,10 @@ import {
   Shield,
   Eye,
   Bell,
-  MessageSquare
+  MessageSquare,
+  Play,
+  Pause,
+  RotateCcw
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -31,72 +34,148 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   const [logs, setLogs] = useState<Array<{id: string, message: string, timestamp: Date, type: 'info' | 'warning' | 'error'}>>([]);
   const [newMessage, setNewMessage] = useState('');
   const [assistantStatus, setAssistantStatus] = useState('working');
-  const [densityData, setDensityData] = useState({ current: 23, max: 50, zones: ['Zone A: 8', 'Zone B: 12', 'Zone C: 3'] });
+  const [densityData, setDensityData] = useState({ 
+    current: 23, 
+    max: 50, 
+    zones: [
+      { name: 'Zone 1 (Left)', count: 8, color: 'bg-blue-500' },
+      { name: 'Zone 2 (Top Right)', count: 7, color: 'bg-green-500' },
+      { name: 'Zone 3 (Bottom Right)', count: 8, color: 'bg-purple-500' }
+    ]
+  });
   const [criticalAlert, setCriticalAlert] = useState(false);
-  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   useEffect(() => {
-    // Simulate real-time logs
+    // Simulate AI analysis logs
     const interval = setInterval(() => {
-      const messages = [
-        { message: 'Motion detected in Zone A', type: 'info' as const },
-        { message: 'Person entered restricted area', type: 'warning' as const },
-        { message: 'Camera 3 offline', type: 'error' as const },
-        { message: 'System scan completed', type: 'info' as const },
-        { message: 'High density detected in Zone B', type: 'warning' as const },
-        { message: 'All systems operational', type: 'info' as const }
+      if (isAnalyzing) {
+        const aiMessages = [
+          { message: 'AI: Motion detected in Zone 1 (Left half)', type: 'info' as const },
+          { message: 'AI: Person entered Zone 2 (Top Right)', type: 'info' as const },
+          { message: 'AI: High density detected in Zone 3 (Bottom Right)', type: 'warning' as const },
+          { message: 'AI: Unusual activity pattern in Zone 1', type: 'warning' as const },
+          { message: 'AI: Person count updated across all zones', type: 'info' as const },
+          { message: 'AI: Zone analysis complete - all zones monitored', type: 'info' as const },
+          { message: 'AI: Crowd formation detected in Zone 2', type: 'warning' as const },
+          { message: 'AI: Normal traffic flow in Zone 1', type: 'info' as const }
+        ];
+        
+        const randomMessage = aiMessages[Math.floor(Math.random() * aiMessages.length)];
+        setLogs(prev => [...prev, {
+          id: Date.now().toString(),
+          ...randomMessage,
+          timestamp: new Date()
+        }].slice(-50));
+      }
+    }, 2000);
+
+    // Simulate real-time system logs
+    const systemInterval = setInterval(() => {
+      const systemMessages = [
+        { message: 'System: Camera feed stable', type: 'info' as const },
+        { message: 'System: AI model processing frame', type: 'info' as const },
+        { message: 'System: Network connection optimal', type: 'info' as const }
       ];
       
-      const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+      const randomMessage = systemMessages[Math.floor(Math.random() * systemMessages.length)];
       setLogs(prev => [...prev, {
         id: Date.now().toString(),
         ...randomMessage,
         timestamp: new Date()
       }].slice(-50)); // Keep only last 50 logs
-    }, 3000);
-
-    // Simulate density updates
-    const densityInterval = setInterval(() => {
-      setDensityData(prev => ({
-        ...prev,
-        current: Math.floor(Math.random() * 50) + 1,
-        zones: [
-          `Zone A: ${Math.floor(Math.random() * 15)}`,
-          `Zone B: ${Math.floor(Math.random() * 20)}`,
-          `Zone C: ${Math.floor(Math.random() * 10)}`
-        ]
-      }));
     }, 5000);
+
+    // Simulate AI-driven density updates
+    const densityInterval = setInterval(() => {
+      if (isAnalyzing) {
+        const zone1 = Math.floor(Math.random() * 15) + 1;
+        const zone2 = Math.floor(Math.random() * 12) + 1;
+        const zone3 = Math.floor(Math.random() * 10) + 1;
+        
+        setDensityData(prev => ({
+          ...prev,
+          current: zone1 + zone2 + zone3,
+          zones: [
+            { name: 'Zone 1 (Left)', count: zone1, color: 'bg-blue-500' },
+            { name: 'Zone 2 (Top Right)', count: zone2, color: 'bg-green-500' },
+            { name: 'Zone 3 (Bottom Right)', count: zone3, color: 'bg-purple-500' }
+          ]
+        }));
+      }
+    }, 3000);
 
     return () => {
       clearInterval(interval);
+      clearInterval(systemInterval);
       clearInterval(densityInterval);
     };
-  }, []);
+  }, [isAnalyzing]);
 
   useEffect(() => {
-    // Only auto-scroll if user is at bottom
-    if (isAtBottom && logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    // Only auto-scroll logs if user is at bottom, not the entire page
+    if (isAtBottom && logsEndRef.current && logsContainerRef.current) {
+      const container = logsContainerRef.current;
+      container.scrollTop = container.scrollHeight;
     }
   }, [logs, isAtBottom]);
 
-  // Check if user is at bottom of logs
+  // Check if user is at bottom of logs container only
   const checkIfAtBottom = () => {
     const container = logsContainerRef.current;
     if (!container) return true;
     
-    const threshold = 10; // pixels from bottom
+    const threshold = 20;
     const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
     return atBottom;
   };
 
-  // Handle scroll events
+  // Handle scroll events for logs container only
   const handleLogsScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    e.stopPropagation(); // Prevent event bubbling
     const atBottom = checkIfAtBottom();
     setIsAtBottom(atBottom);
+  };
+
+  const startAnalysis = () => {
+    if (!youtubeUrl.trim()) {
+      setLogs(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Error: Please enter a valid YouTube URL',
+        timestamp: new Date(),
+        type: 'error'
+      }]);
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    setShowUrlInput(false);
+    setLogs(prev => [...prev, {
+      id: Date.now().toString(),
+      message: `AI: Starting analysis of video feed from YouTube`,
+      timestamp: new Date(),
+      type: 'info'
+    }, {
+      id: (Date.now() + 1).toString(),
+      message: 'AI: Initializing zone detection (Zone 1: Left, Zone 2: Top Right, Zone 3: Bottom Right)',
+      timestamp: new Date(),
+      type: 'info'
+    }]);
+  };
+
+  const stopAnalysis = () => {
+    setIsAnalyzing(false);
+    setLogs(prev => [...prev, {
+      id: Date.now().toString(),
+      message: 'AI: Analysis stopped by user',
+      timestamp: new Date(),
+      type: 'info'
+    }]);
   };
 
   // Critical alert effect
@@ -131,8 +210,8 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
     // Force scroll to show critical alert by setting to bottom
     setIsAtBottom(true);
     setTimeout(() => {
-      if (logsEndRef.current) {
-        logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      if (logsContainerRef.current) {
+        logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
       }
     }, 100);
   };
@@ -147,7 +226,14 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
       };
       setLogs(prev => [...prev, message]);
       setNewMessage('');
+      // Auto-scroll to show new message
+      setIsAtBottom(true);
     }
+  };
+
+  const getYouTubeEmbedUrl = (url: string) => {
+    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+    return videoId ? `https://www.youtube.com/embed/${videoId[1]}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId[1]}` : null;
   };
 
   const getRoleIcon = (role: string) => {
@@ -281,43 +367,125 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                     <Camera className={`w-6 h-6 transition-colors duration-500 ${
                       criticalAlert ? 'text-white' : 'text-blue-600'
                     }`} />
-                    Camera Feed
+                    AI-Powered Camera Feed
                   </h2>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${
-                      criticalAlert ? 'bg-white' : 'bg-red-500'
-                    }`}></div>
-                    <span className={`text-sm transition-colors duration-500 ${
-                      criticalAlert ? 'text-white' : 'text-gray-600'
-                    }`}>Live</span>
+                  <div className="flex items-center gap-4">
+                    {!showUrlInput && !isAnalyzing && (
+                      <button
+                        onClick={() => setShowUrlInput(true)}
+                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        Add YouTube URL
+                      </button>
+                    )}
+                    {isAnalyzing && (
+                      <button
+                        onClick={stopAnalysis}
+                        className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center gap-1"
+                      >
+                        <Pause className="w-3 h-3" />
+                        Stop Analysis
+                      </button>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        isAnalyzing ? 'animate-pulse bg-green-500' : 'bg-gray-400'
+                      } ${criticalAlert ? 'bg-white' : ''}`}></div>
+                      <span className={`text-sm transition-colors duration-500 ${
+                        criticalAlert ? 'text-white' : 'text-gray-600'
+                      }`}>{isAnalyzing ? 'AI Analyzing' : 'Offline'}</span>
+                    </div>
                   </div>
                 </div>
+                
+                {showUrlInput && (
+                  <div className="mt-4 flex gap-2">
+                    <input
+                      type="url"
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=...)"
+                      className="flex-1 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={startAnalysis}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
+                    >
+                      <Play className="w-4 h-4" />
+                      Start AI Analysis
+                    </button>
+                    <button
+                      onClick={() => setShowUrlInput(false)}
+                      className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
               
               <div className={`aspect-video relative overflow-hidden transition-all duration-500 ${
                 criticalAlert ? 'bg-red-900' : 'bg-gray-900'
               }`}>
-                <div className={`absolute inset-0 bg-gradient-to-br flex items-center justify-center transition-all duration-500 ${
-                  criticalAlert 
-                    ? 'from-red-800 to-red-900' 
-                    : 'from-gray-800 to-gray-900'
-                }`}>
-                  <div className="text-center text-white">
-                    <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium mb-2">Camera Feed Simulation</p>
-                    <p className={`transition-colors duration-500 ${
-                      criticalAlert ? 'text-red-200' : 'text-gray-400'
-                    }`}>Live video stream would appear here</p>
+                {youtubeUrl && getYouTubeEmbedUrl(youtubeUrl) ? (
+                  <div className="relative w-full h-full">
+                    <iframe
+                      src={getYouTubeEmbedUrl(youtubeUrl) || ''}
+                      className="w-full h-full"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                    
+                    {/* Zone Overlays */}
+                    {isAnalyzing && (
+                      <>
+                        {/* Zone 1 - Left Half */}
+                        <div className="absolute top-0 left-0 w-1/2 h-full border-2 border-blue-500 bg-blue-500/10 flex items-center justify-center">
+                          <div className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-bold">
+                            Zone 1: {densityData.zones[0].count} people
+                          </div>
+                        </div>
+                        
+                        {/* Zone 2 - Top Right */}
+                        <div className="absolute top-0 right-0 w-1/2 h-1/2 border-2 border-green-500 bg-green-500/10 flex items-center justify-center">
+                          <div className="bg-green-500 text-white px-2 py-1 rounded text-sm font-bold">
+                            Zone 2: {densityData.zones[1].count} people
+                          </div>
+                        </div>
+                        
+                        {/* Zone 3 - Bottom Right */}
+                        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 border-2 border-purple-500 bg-purple-500/10 flex items-center justify-center">
+                          <div className="bg-purple-500 text-white px-2 py-1 rounded text-sm font-bold">
+                            Zone 3: {densityData.zones[2].count} people
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className={`absolute inset-0 bg-gradient-to-br flex items-center justify-center transition-all duration-500 ${
+                    criticalAlert 
+                      ? 'from-red-800 to-red-900' 
+                      : 'from-gray-800 to-gray-900'
+                  }`}>
+                    <div className="text-center text-white">
+                      <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium mb-2">AI-Powered Camera Feed</p>
+                      <p className={`transition-colors duration-500 ${
+                        criticalAlert ? 'text-red-200' : 'text-gray-400'
+                      }`}>Add a YouTube URL to start AI analysis</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Overlay Info */}
-                <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
-                  <div className="text-sm">Camera 1 - Main Entrance</div>
+                <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
+                  <div className="text-sm">AI Camera Analysis - 3 Zone Detection</div>
                   <div className="text-xs text-gray-300">{new Date().toLocaleTimeString()}</div>
                 </div>
                 
-                <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
+                <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
                   <div className="text-sm flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     {densityData.current} people detected
@@ -373,14 +541,14 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                 <div className="space-y-2">
                   <div className={`text-sm font-medium transition-colors duration-500 ${
                     criticalAlert ? 'text-red-200' : 'text-gray-700'
-                  }`}>Zone Distribution:</div>
+                  }`}>AI Zone Analysis:</div>
                   {densityData.zones.map((zone, index) => (
                     <div key={index} className="flex items-center justify-between text-sm">
                       <span className={`transition-colors duration-500 ${
                         criticalAlert ? 'text-red-200' : 'text-gray-600'
-                      }`}>{zone}</span>
-                      <div className={`w-2 h-2 rounded-full transition-colors duration-500 ${
-                        criticalAlert ? 'bg-white' : 'bg-blue-500'
+                      }`}>{zone.name}: {zone.count}</span>
+                      <div className={`w-3 h-3 rounded-full transition-colors duration-500 ${
+                        criticalAlert ? 'bg-white' : zone.color
                       }`}></div>
                     </div>
                   ))}
@@ -431,9 +599,9 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                 <button
                   onClick={() => {
                     setIsAtBottom(true);
-                    setTimeout(() => {
-                      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }, 50);
+                    if (logsContainerRef.current) {
+                      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
+                    }
                   }}
                   className={`mt-2 px-3 py-1 text-xs rounded-full transition-colors ${
                     criticalAlert 
@@ -450,6 +618,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
               ref={logsContainerRef}
               onScroll={handleLogsScroll}
               className="h-64 overflow-y-auto p-4 space-y-2"
+              style={{ scrollBehavior: 'smooth' }}
             >
               {logs.map((log) => (
                 <div key={log.id} className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
