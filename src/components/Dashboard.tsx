@@ -98,19 +98,26 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
     // Simulate AI-driven density updates
     const densityInterval = setInterval(() => {
       if (isAnalyzing && (youtubeUrl.trim() || uploadedVideo)) {
-        const zone1 = Math.floor(Math.random() * 15) + 1;
-        const zone2 = Math.floor(Math.random() * 12) + 1;
-        const zone3 = Math.floor(Math.random() * 10) + 1;
+        // More realistic crowd simulation with gradual changes
+        setDensityData(prev => {
+          const zone1Change = Math.floor(Math.random() * 5) - 2; // -2 to +2
+          const zone2Change = Math.floor(Math.random() * 5) - 2;
+          const zone3Change = Math.floor(Math.random() * 5) - 2;
+          
+          const newZone1 = Math.max(0, Math.min(20, prev.zones[0].count + zone1Change));
+          const newZone2 = Math.max(0, Math.min(15, prev.zones[1].count + zone2Change));
+          const newZone3 = Math.max(0, Math.min(15, prev.zones[2].count + zone3Change));
         
-        setDensityData(prev => ({
-          ...prev,
-          current: zone1 + zone2 + zone3,
-          zones: [
-            { name: 'Zone 1 (Left)', count: zone1, color: 'bg-blue-500' },
-            { name: 'Zone 2 (Top Right)', count: zone2, color: 'bg-green-500' },
-            { name: 'Zone 3 (Bottom Right)', count: zone3, color: 'bg-purple-500' }
-          ]
-        }));
+          return {
+            ...prev,
+            current: newZone1 + newZone2 + newZone3,
+            zones: [
+              { name: 'Zone 1 (Left)', count: newZone1, color: 'bg-blue-500' },
+              { name: 'Zone 2 (Top Right)', count: newZone2, color: 'bg-green-500' },
+              { name: 'Zone 3 (Bottom Right)', count: newZone3, color: 'bg-purple-500' }
+            ]
+          };
+        });
       } else if (!isAnalyzing) {
         // Reset density data when analysis stops
         setDensityData(prev => ({
@@ -321,7 +328,8 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
         /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
         /(?:youtu\.be\/)([^&\n?#]+)/,
         /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
-        /(?:youtube\.com\/v\/)([^&\n?#]+)/
+        /(?:youtube\.com\/v\/)([^&\n?#]+)/,
+        /(?:youtube\.com.*[?&]v=)([^&\n?#]+)/
       ];
       
       for (const pattern of patterns) {
@@ -333,7 +341,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
       }
       
       if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0&modestbranding=1&enablejsapi=1&origin=${window.location.origin}`;
       }
     } catch (error) {
       console.error('Error parsing YouTube URL:', error);
@@ -595,7 +603,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
               <div className={`aspect-video relative overflow-hidden transition-all duration-500 ${
                 criticalAlert ? 'bg-red-900' : 'bg-gray-900'
               }`}>
-                {youtubeUrl.trim() && getYouTubeEmbedUrl(youtubeUrl.trim()) ? (
+                {youtubeUrl.trim() && getYouTubeEmbedUrl(youtubeUrl.trim()) && videoSource === 'youtube' ? (
                   <div className="relative w-full h-full">
                     <iframe
                       src={getYouTubeEmbedUrl(youtubeUrl.trim()) || ''}
@@ -604,28 +612,64 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                       title="AI Camera Analysis Video"
-                      title="AI Camera Analysis Video"
                     ></iframe>
                     
                     {/* Zone Overlays */}
                     {isAnalyzing && (
                       <>
                         {/* Zone 1 - Left Half */}
-                        <div className="absolute top-0 left-0 w-1/2 h-full border-2 border-blue-500 bg-blue-500/10 flex items-center justify-center">
+                        <div className="absolute top-0 left-0 w-1/2 h-full border-2 border-blue-500 bg-blue-500/20 flex items-center justify-center">
                           <div className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-bold">
                             Zone 1: {densityData.zones[0].count} people
                           </div>
                         </div>
                         
                         {/* Zone 2 - Top Right */}
-                        <div className="absolute top-0 right-0 w-1/2 h-1/2 border-2 border-green-500 bg-green-500/10 flex items-center justify-center">
+                        <div className="absolute top-0 right-0 w-1/2 h-1/2 border-2 border-green-500 bg-green-500/20 flex items-center justify-center">
                           <div className="bg-green-500 text-white px-2 py-1 rounded text-sm font-bold">
                             Zone 2: {densityData.zones[1].count} people
                           </div>
                         </div>
                         
                         {/* Zone 3 - Bottom Right */}
-                        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 border-2 border-purple-500 bg-purple-500/10 flex items-center justify-center">
+                        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 border-2 border-purple-500 bg-purple-500/20 flex items-center justify-center">
+                          <div className="bg-purple-500 text-white px-2 py-1 rounded text-sm font-bold">
+                            Zone 3: {densityData.zones[2].count} people
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : uploadedVideo && videoSource === 'file' ? (
+                  <div className="relative w-full h-full">
+                    <video
+                      src={uploadedVideo}
+                      className="w-full h-full object-cover"
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                    />
+                    
+                    {/* Zone Overlays for uploaded video */}
+                    {isAnalyzing && (
+                      <>
+                        {/* Zone 1 - Left Half */}
+                        <div className="absolute top-0 left-0 w-1/2 h-full border-2 border-blue-500 bg-blue-500/20 flex items-center justify-center">
+                          <div className="bg-blue-500 text-white px-2 py-1 rounded text-sm font-bold">
+                            Zone 1: {densityData.zones[0].count} people
+                          </div>
+                        </div>
+                        
+                        {/* Zone 2 - Top Right */}
+                        <div className="absolute top-0 right-0 w-1/2 h-1/2 border-2 border-green-500 bg-green-500/20 flex items-center justify-center">
+                          <div className="bg-green-500 text-white px-2 py-1 rounded text-sm font-bold">
+                            Zone 2: {densityData.zones[1].count} people
+                          </div>
+                        </div>
+                        
+                        {/* Zone 3 - Bottom Right */}
+                        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 border-2 border-purple-500 bg-purple-500/20 flex items-center justify-center">
                           <div className="bg-purple-500 text-white px-2 py-1 rounded text-sm font-bold">
                             Zone 3: {densityData.zones[2].count} people
                           </div>
