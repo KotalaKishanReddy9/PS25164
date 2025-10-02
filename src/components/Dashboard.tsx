@@ -314,26 +314,6 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
       if (videoId) {
         return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
       }
-      
-      // Handle different YouTube URL formats
-      const patterns = [
-        /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
-        /(?:youtu\.be\/)([^&\n?#]+)/,
-        /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
-        /(?:youtube\.com\/v\/)([^&\n?#]+)/
-      ];
-      
-      for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match && match[1]) {
-          videoId = match[1];
-          break;
-        }
-      }
-      
-      if (videoId && videoId[1]) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
-      }
     } catch (error) {
       console.error('Error parsing YouTube URL:', error);
     }
