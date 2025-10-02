@@ -35,12 +35,12 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   const [newMessage, setNewMessage] = useState('');
   const [assistantStatus, setAssistantStatus] = useState('working');
   const [densityData, setDensityData] = useState({ 
-    current: 23, 
-    max: 50, 
+    current: 0, 
+    max: 50,
     zones: [
-      { name: 'Zone 1 (Left)', count: 8, color: 'bg-blue-500' },
-      { name: 'Zone 2 (Top Right)', count: 7, color: 'bg-green-500' },
-      { name: 'Zone 3 (Bottom Right)', count: 8, color: 'bg-purple-500' }
+      { name: 'Zone 1 (Left)', count: 0, color: 'bg-blue-500' },
+      { name: 'Zone 2 (Top Right)', count: 0, color: 'bg-green-500' },
+      { name: 'Zone 3 (Bottom Right)', count: 0, color: 'bg-purple-500' }
     ]
   });
   const [criticalAlert, setCriticalAlert] = useState(false);
@@ -58,7 +58,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   useEffect(() => {
     // Simulate AI analysis logs
     const interval = setInterval(() => {
-      if (isAnalyzing) {
+      if (isAnalyzing && (youtubeUrl.trim() || uploadedVideo)) {
         const aiMessages = [
           { message: 'AI: Motion detected in Zone 1 (Left half)', type: 'info' as const },
           { message: 'AI: Person entered Zone 2 (Top Right)', type: 'info' as const },
@@ -97,7 +97,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
 
     // Simulate AI-driven density updates
     const densityInterval = setInterval(() => {
-      if (isAnalyzing) {
+      if (isAnalyzing && (youtubeUrl.trim() || uploadedVideo)) {
         const zone1 = Math.floor(Math.random() * 15) + 1;
         const zone2 = Math.floor(Math.random() * 12) + 1;
         const zone3 = Math.floor(Math.random() * 10) + 1;
@@ -109,6 +109,17 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
             { name: 'Zone 1 (Left)', count: zone1, color: 'bg-blue-500' },
             { name: 'Zone 2 (Top Right)', count: zone2, color: 'bg-green-500' },
             { name: 'Zone 3 (Bottom Right)', count: zone3, color: 'bg-purple-500' }
+          ]
+        }));
+      } else if (!isAnalyzing) {
+        // Reset density data when analysis stops
+        setDensityData(prev => ({
+          ...prev,
+          current: 0,
+          zones: [
+            { name: 'Zone 1 (Left)', count: 0, color: 'bg-blue-500' },
+            { name: 'Zone 2 (Top Right)', count: 0, color: 'bg-green-500' },
+            { name: 'Zone 3 (Bottom Right)', count: 0, color: 'bg-purple-500' }
           ]
         }));
       }
@@ -147,7 +158,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   };
 
   const startAnalysis = () => {
-    if (!youtubeUrl.trim() || !getYouTubeEmbedUrl(youtubeUrl.trim())) {
+    if ((!youtubeUrl.trim() || !getYouTubeEmbedUrl(youtubeUrl.trim())) && !uploadedVideo) {
       setLogs(prev => [...prev, {
         id: Date.now().toString(),
         message: 'Error: Please enter a valid YouTube URL or upload a video file',
@@ -180,6 +191,16 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
 
   const stopAnalysis = () => {
     setIsAnalyzing(false);
+    // Reset density data when stopping analysis
+    setDensityData(prev => ({
+      ...prev,
+      current: 0,
+      zones: [
+        { name: 'Zone 1 (Left)', count: 0, color: 'bg-blue-500' },
+        { name: 'Zone 2 (Top Right)', count: 0, color: 'bg-green-500' },
+        { name: 'Zone 3 (Bottom Right)', count: 0, color: 'bg-purple-500' }
+      ]
+    }));
     setLogs(prev => [...prev, {
       id: Date.now().toString(),
       message: 'AI: Analysis stopped by user',
@@ -621,9 +642,9 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                     <div className="text-center text-white">
                       <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
                       <p className="text-lg font-medium mb-2">AI-Powered Camera Feed</p>
-                      <p className={`transition-colors duration-500 ${
+                      <p className={`text-sm transition-colors duration-500 ${
                         criticalAlert ? 'text-red-200' : 'text-gray-400'
-                      }`}>Add a YouTube URL to start AI analysis</p>
+                      }`}>Add a YouTube URL or upload a video file to start AI analysis</p>
                       {youtubeUrl.trim() && !getYouTubeEmbedUrl(youtubeUrl.trim()) && (
                         <p className="text-red-400 text-sm mt-2">
                           Invalid YouTube URL. Please check the link and try again.
@@ -645,7 +666,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                 <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
                   <div className="text-sm flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    {densityData.current} people detected
+                    {isAnalyzing ? `${densityData.current} people detected` : 'No analysis active'}
                   </div>
                 </div>
               </div>
