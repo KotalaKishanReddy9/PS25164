@@ -147,7 +147,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
   };
 
   const startAnalysis = () => {
-    if (!youtubeUrl.trim() && !uploadedVideo) {
+    if (!youtubeUrl.trim() || !getYouTubeEmbedUrl(youtubeUrl.trim())) {
       setLogs(prev => [...prev, {
         id: Date.now().toString(),
         message: 'Error: Please enter a valid YouTube URL or upload a video file',
@@ -171,6 +171,11 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
       timestamp: new Date(),
       type: 'info'
     }]);
+  };
+
+  const clearYouTubeUrl = () => {
+    setYoutubeUrl('');
+    setVideoSource(null);
   };
 
   const stopAnalysis = () => {
@@ -294,6 +299,26 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
     try {
       // More comprehensive YouTube URL parsing
       let videoId = null;
+      
+      // Handle different YouTube URL formats
+      const patterns = [
+        /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
+        /(?:youtu\.be\/)([^&\n?#]+)/,
+        /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
+        /(?:youtube\.com\/v\/)([^&\n?#]+)/
+      ];
+      
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+          videoId = match[1];
+          break;
+        }
+      }
+      
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
+      }
       
       // Handle different YouTube URL formats
       const patterns = [
@@ -583,6 +608,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                       title="AI Camera Analysis Video"
+                      title="AI Camera Analysis Video"
                     ></iframe>
                     
                     {/* Zone Overlays */}
@@ -623,6 +649,11 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                       <p className={`transition-colors duration-500 ${
                         criticalAlert ? 'text-red-200' : 'text-gray-400'
                       }`}>Add a YouTube URL to start AI analysis</p>
+                      {youtubeUrl.trim() && !getYouTubeEmbedUrl(youtubeUrl.trim()) && (
+                        <p className="text-red-400 text-sm mt-2">
+                          Invalid YouTube URL. Please check the link and try again.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -741,8 +772,11 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
               <h3 className={`text-lg font-bold flex items-center gap-2 transition-colors duration-500 ${
                 criticalAlert ? 'text-white' : 'text-gray-900'
               }`}>
-                <MessageSquare className={`w-5 h-5 transition-colors duration-500 ${
-                  criticalAlert ? 'text-white' : 'text-purple-600'
+                    onChange={(e) => {
+                      setYoutubeUrl(e.target.value);
+                      setVideoSource('youtube');
+                    }}
+                    placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
                 }`} />
                 Live Activity Logs
               </h3>
@@ -755,7 +789,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                     }
                   }}
                   className={`mt-2 px-3 py-1 text-xs rounded-full transition-colors ${
-                    criticalAlert 
+                      clearYouTubeUrl();
                       ? 'bg-red-800 text-white hover:bg-red-900' 
                       : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                   }`}
