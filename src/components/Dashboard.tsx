@@ -747,11 +747,8 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
               <h3 className={`text-lg font-bold flex items-center gap-2 transition-colors duration-500 ${
                 criticalAlert ? 'text-white' : 'text-gray-900'
               }`}>
-                    onChange={(e) => {
-                      setYoutubeUrl(e.target.value);
-                      setVideoSource('youtube');
-                    }}
-                    placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
+                <MessageSquare className={`w-5 h-5 transition-colors duration-500 ${
+                  criticalAlert ? 'text-white' : 'text-blue-600'
                 }`} />
                 Live Activity Logs
               </h3>
@@ -764,7 +761,7 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
                     }
                   }}
                   className={`mt-2 px-3 py-1 text-xs rounded-full transition-colors ${
-                      clearYouTubeUrl();
+                    criticalAlert
                       ? 'bg-red-800 text-white hover:bg-red-900' 
                       : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                   }`}
