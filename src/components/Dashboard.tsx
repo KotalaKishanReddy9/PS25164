@@ -237,11 +237,6 @@ function Dashboard({ user, onLogout, onShowProfile }: DashboardProps) {
     setVideoSource(null);
   };
 
-  const clearYouTubeUrl = () => {
-    setYoutubeUrl('');
-    setVideoSource(null);
-  };
-
   // Critical alert effect
   useEffect(() => {
     if (criticalAlert) {
